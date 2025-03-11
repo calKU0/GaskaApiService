@@ -36,7 +36,7 @@ namespace GaskaApiService
             _username = $"{acronym}|{person}";
         }
 
-        public async Task<List<Product>> FetchProductsData(int productsResponsePerRequest)
+        public async Task<List<Product>> FetchProductsData(int productsResponsePerRequest, int pageNumber)
         {
             List<Product> products = new List<Product>();
             try
@@ -46,10 +46,10 @@ namespace GaskaApiService
 
                 var request = new RestRequest(action, Method.Get);
                 request.AddParameter("lng", "pl");
-                request.AddParameter("page", 1); // TODO: increment
+                request.AddParameter("page", pageNumber);
                 request.AddParameter("perPage", productsResponsePerRequest);
 
-                _logger.Information($"Sending /products request with parameters: perPage={productsResponsePerRequest}, lng=pl");
+                _logger.Information($"Sending /products request with parameters: perPage={productsResponsePerRequest}, page={pageNumber}, lng=pl");
                 var response = await client.ExecuteAsync(request);
 
                 if (!response.IsSuccessful)

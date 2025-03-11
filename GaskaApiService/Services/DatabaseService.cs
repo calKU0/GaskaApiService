@@ -11,12 +11,22 @@ namespace GaskaApiService.Services
     public class DatabaseService
     {
         private readonly string _connectionString;
+        private readonly string _username;
+        private readonly string _password;
+        private readonly string _ip;
+        private readonly string _dbName;
+        private readonly string _tableName;
         private readonly ILogger _logger;
 
-        public DatabaseService(string connectionString, ILogger logger)
-        {
-            _connectionString = connectionString;
+        public DatabaseService(string username, string password, string ip, string dbName, string tableName, ILogger logger)
+        {;
+            _username = username;
+            _password = password;
+            _ip = ip;
+            _dbName = dbName;
+            _tableName = tableName;
             _logger = logger;
+            _connectionString = $"server={ip};database={dbName};user={username};password={password}";
         }
 
         public async Task<int> UpdateProducts(List<Product> products)
@@ -26,70 +36,97 @@ namespace GaskaApiService.Services
             {
                 using (var connection = new MySqlConnection(_connectionString))
                 {
-                    connection.Open();
+                    await connection.OpenAsync();
 
-                    string query = @"INSERT INTO `products` (
-                                  `idGaska`, 
-                                  `codeGaska`, 
-                                  `name`, 
-                                  `unit`, 
-                                  `ean`, 
-                                  `weight`, 
-                                  `description`, 
-                                  `price`, 
-                                  `currency`, 
-                                  `availabilityQty`, 
-                                  `availability`, 
-                                  `crawlts`, 
-                                  `updated_times`, 
-                                  `valid`
-                                ) 
-                                VALUES (
-                                  @id, @code, @name, @unit, @ean, @weight, @description, @price, @currency, @quantity, 1, 1, 1, 1
-                                )
-                                ON DUPLICATE KEY UPDATE
-                                  `codeGaska` = @code,
-                                  `name` = @name,
-                                  `unit` = @unit,
-                                  `ean` = @ean,
-                                  `weight` = @weight,
-                                  `description` = @description,
-                                  `price` = @price,
-                                  `currency` = @currency,
-                                  `availabilityQty` = @quantity,
-                                  `availability` = 1,
-                                  `crawlts` = 1,
-                                  `updated_times` = updated_times + 1,
-                                  `valid` = 1;
-                                ";
+                    string query = $@"
+                    USE {_dbName};
+                    INSERT INTO {_tableName} (
+                        `id`, 
+                        `codeGaska`, 
+                        `codeCustomer`, 
+                        `name`, 
+                        `unit`, 
+                        `ean`, 
+                        `description`, 
+                        `technicalDetails`,
+                        `netPrice`, 
+                        `grossPrice`, 
+                        `currencyPrice`, 
+                        `netWeight`, 
+                        `grossWeight`, 
+                        `inStock`, 
+                        `updated_times`, 
+                        `valid`
+                    )
+                    VALUES (
+                        @id, @codeGaska, @codeCustomer, @name, @unit, @ean, @description, @technicalDetails,
+                        @netPrice, @grossPrice, @currencyPrice, @netWeight, @grossWeight, @quantity, 1, 1
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        `codeGaska` = @codeGaska,
+                        `codeCustomer` = @codeCustomer,
+                        `name` = @name,
+                        `unit` = @unit,
+                        `ean` = @ean,
+                        `description` = @description,
+                        `technicalDetails` = @technicalDetails,
+                        `netPrice` = @netPrice,
+                        `grossPrice` = @grossPrice,
+                        `currencyPrice` = @currencyPrice,
+                        `netWeight` = @netWeight,
+                        `grossWeight` = @grossWeight,
+                        `inStock` = @quantity,
+                        `updated_times` = `updated_times` + 1;";
+
+
                     using (var command = new MySqlCommand(query, connection))
                     {
                         foreach (Product product in products)
                         {
+                            command.Parameters.Clear();
                             command.Parameters.AddWithValue("@id", product.Id);
-                            command.Parameters.AddWithValue("@code", product.Code);
+                            command.Parameters.AddWithValue("@codeGaska", product.CodeGaska);
+                            command.Parameters.AddWithValue("@codeCustomer", product.CodeCustomer);
                             command.Parameters.AddWithValue("@name", product.Name);
                             command.Parameters.AddWithValue("@unit", product.Unit);
                             command.Parameters.AddWithValue("@ean", product.Ean);
-                            command.Parameters.AddWithValue("@weight", product.Weight);
                             command.Parameters.AddWithValue("@description", product.Description);
-                            command.Parameters.AddWithValue("@price", product.Price);
-                            command.Parameters.AddWithValue("@currency", product.Currency);
-                            command.Parameters.AddWithValue("@quantity", product.Quantity);
+                            command.Parameters.AddWithValue("@technicalDetails", product.TechnicalDetails);
+                            command.Parameters.AddWithValue("@netPrice", product.NetPrice);
+                            command.Parameters.AddWithValue("@grossPrice", product.GrossPrice);
+                            command.Parameters.AddWithValue("@currencyPrice", product.CurrencyPrice);
+                            command.Parameters.AddWithValue("@netWeight", product.NetWeight);
+                            command.Parameters.AddWithValue("@grossWeight", product.GrossWeight);
+                            command.Parameters.AddWithValue("@quantity", product.InStock);
 
-                            int result = await command.ExecuteNonQueryAsync();
-                            updatedRows += result;
-                            if (result >= 1)
+                            int result = 0;
+                            try
                             {
-                                _logger.Information($"Updated product {product.Code}");
+                                result = await command.ExecuteNonQueryAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Error(ex, "Error while trying to update/insert product: @product", product);
+                            }
+
+                            if (result == 1)
+                            {
+                                _logger.Information($"Insered new product {product.CodeGaska} to database");
+                                updatedRows++;
+                            }
+                            else if (result == 2)
+                            {
+                                _logger.Information($"Updated product {product.CodeGaska}");
+                                updatedRows++;
                             }
                             else
                             {
-                                _logger.Information($"Couldn't update product {product.Code}");
+                                _logger.Information($"Didn't update product {product.CodeGaska}");
                             }
                         }
                     }
                 }
+
             }
             catch
             {

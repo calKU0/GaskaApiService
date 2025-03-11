@@ -9,14 +9,18 @@ namespace GaskaApiService
     public class Product
     {
         public int Id { get; set; }
-        public string Code { get; set; }
+        public string CodeGaska { get; set; }
+        public string CodeCustomer { get; set; }
         public string Name { get; set; }
         public string Unit { get; set; }
         public string Ean { get; set; }
-        public decimal Weight { get; set; }
         public string Description { get; set; }
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
-        public string Currency { get; set; }
+        public string TechnicalDetails { get; set; }
+        public decimal NetPrice { get; set; }
+        public decimal GrossPrice { get; set; }
+        public string CurrencyPrice { get; set; }
+        public decimal NetWeight { get; set; }
+        public decimal GrossWeight { get; set; }
+        public decimal InStock { get; set; }
     }
 }

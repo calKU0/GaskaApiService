@@ -43,7 +43,7 @@ namespace GaskaApiService
         private readonly APIService _apiHandler;
         private readonly DatabaseService _dbService;
         private Timer _timer;
-        private bool _fetched = false;
+        private DateTime _lastFetched = DateTime.Today.AddDays(-1);
         public GaskaApiService()
         {
             // Serilog configuration and initialization
@@ -76,7 +76,7 @@ namespace GaskaApiService
         private void CheckAndFetchData()
         {
             var currentTime = DateTime.Now.Hour;
-            if (currentTime >= _startProductsFetchHour && currentTime < _endProductsFetchHour && !_fetched)
+            if (currentTime >= _startProductsFetchHour && currentTime < _endProductsFetchHour && _lastFetched.Date < DateTime.Now.Date)
             {
                 Task.Run(() => FetchData());
             }
@@ -87,7 +87,7 @@ namespace GaskaApiService
         {
             try
             {
-                _fetched = true;
+                _lastFetched = DateTime.Now.Date;
                 DeleteOldJsonFiles(_logsExpirationDays);
 
                 int pageNumber = 1;

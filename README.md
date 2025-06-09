@@ -1,5 +1,7 @@
 # Automated API Data Loader
 
+> 💼 **Commercial Project** — part of a private or client-facing initiative.
+
 ## Overview
 A Windows Service application that fetches data from an external API and inserts it into a database.
 
